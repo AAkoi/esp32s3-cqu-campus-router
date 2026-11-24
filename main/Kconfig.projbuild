@@ -1,0 +1,44 @@
+menu "Campus Wi-Fi router configuration"
+
+    config ESP_WIFI_AP_SSID
+        string "Router Wi-Fi name"
+        default "CQU-A1-Router"
+        help
+            Wi-Fi network name for the Bambu Lab A1 and your phone.
+
+    config ESP_WIFI_AP_PASSWORD
+        string "Router Wi-Fi password"
+        default ""
+        help
+            Set a WPA2 password of 8 to 63 characters before flashing.
+
+    config ESP_WIFI_AP_CHANNEL
+        int "Router preferred Wi-Fi channel"
+        range 1 13
+        default 1
+
+    config ESP_MAX_STA_CONN_AP
+        int "Maximum router Wi-Fi clients"
+        range 1 10
+        default 4
+
+    config ESP_WIFI_REMOTE_AP_SSID
+        string "Campus Wi-Fi name"
+        default "CQU_WiFi"
+        help
+            Enter the actual 2.4 GHz network name found in the laboratory.
+            The older CQUNET name is not assumed to still be in use.
+
+    config ESP_WIFI_REMOTE_AP_PASSWORD
+        string "Campus Wi-Fi password, if required"
+        default ""
+        help
+            Leave blank for an open Wi-Fi network with browser authentication.
+            This value is stored in the local sdkconfig file on your computer.
+
+    config ESP_MAXIMUM_STA_RETRY
+        int "Wi-Fi driver retry count"
+        range 1 20
+        default 5
+
+endmenu

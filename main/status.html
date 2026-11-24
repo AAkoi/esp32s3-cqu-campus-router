@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>校园网与 A1 路由器</title>
+    <style>
+        :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+        body { margin: 0; color: #202624; background: #fff; }
+        main { max-width: 34rem; margin: auto; padding: 2rem 1.25rem; }
+        h1 { font-size: 1.35rem; margin: 0 0 1.25rem; }
+        h2 { font-size: 1rem; margin: 0; }
+        p { margin: .45rem 0 0; line-height: 1.55; }
+        .connection { border-left: 3px solid #726e65; padding: .2rem 0 .2rem .8rem; }
+        .connection[data-state="online"] { border-color: #168261; }
+        .connection[data-state="portal"] { border-color: #a56412; }
+        .connection p, dt { color: #515d57; }
+        dl { margin: 1.4rem 0; }
+        dl div { display: grid; grid-template-columns: 1fr minmax(0, 1fr);
+                 gap: .75rem; padding: .65rem 0; border-bottom: 1px solid #dfe5e1; }
+        dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums;
+             overflow-wrap: anywhere; }
+        a { display: inline-block; color: #08614a; padding: .5rem 0; }
+        @media (prefers-color-scheme: dark) {
+            body { color: #e7eee9; background: #181c1a; }
+            .connection p, dt { color: #bcc9c1; }
+            dl div { border-color: #39433d; }
+            a { color: #8bdfbe; }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>校园网与 A1 路由器</h1>
+    <section id="connection" class="connection" aria-live="polite">
+        <h2 id="state">正在读取路由状态</h2>
+        <p id="detail"></p>
+    </section>
+    <dl>
+        <div><dt>校园网 IPv4</dt><dd id="ip">—</dd></div>
+        <div><dt>上游 Wi-Fi</dt><dd id="signal">—</dd></div>
+        <div><dt>热点设备数</dt><dd id="clients">—</dd></div>
+        <div><dt>IPv4 转发</dt><dd id="nat">—</dd></div>
+        <div><dt>邮件监测心跳</dt><dd id="heartbeat">—</dd></div>
+        <div><dt>设备邮件状态</dt><dd id="device-alert">—</dd></div>
+        <div><dt>运行时间</dt><dd id="uptime">—</dd></div>
+    </dl>
+    <a href="http://login.cqu.edu.cn/">打开重庆大学认证页</a>
+</main>
+<script>
+    const byId = (id) => document.getElementById(id);
+    const labels = {
+        offline: ["正在连接校园 Wi-Fi", "开发板会自动重试。"],
+        dhcp: ["已连上校园 Wi-Fi", "正在获取 IPv4 地址。"],
+        checking: ["正在检测互联网", ""],
+        portal: ["需要校园网认证", "保持连接当前热点，打开重庆大学认证页登录。"],
+        unverified: ["暂时无法确认外网连通", "可打开认证页查看状态，或在浏览器中直接试访问外网。"],
+        online: ["校园网可访问互联网", ""],
+    };
+    const heartbeatLabels = {
+        disabled: "未配置",
+        waiting: "等待上游网络",
+        syncing: "正在校时",
+        failed: "发送失败，等待重试",
+    };
+    const deviceAlertLabels = {
+        disabled: "未配置",
+        waiting: "等待上游网络",
+        up: "Device Up 已上报",
+        down: "Device Down 已上报",
+        failed: "上报失败，等待重试",
+    };
+
+    async function refresh() {
+        try {
+            const response = await fetch("/api/status", {cache: "no-store"});
+            if (!response.ok) throw new Error(response.status);
+            const status = await response.json();
+            const state = status.probe_state;
+            const [title, detail] = labels[state] || labels.checking;
+            byId("connection").dataset.state = state;
+            byId("state").textContent = title;
+            byId("detail").textContent = state === "offline" && status.disconnect_reason
+                ? `正在重试（上次断线代码 ${status.disconnect_reason}）。` : detail;
+            byId("ip").textContent = status.wan_ip || "—";
+            byId("signal").textContent = status.channel
+                ? `信道 ${status.channel} · ${status.rssi} dBm` : "—";
+            byId("clients").textContent = status.clients < 0 ? "—" : status.clients;
+            byId("nat").textContent = status.nat_enabled ? "已启用" : "未启用";
+            byId("heartbeat").textContent = status.heartbeat_state === "ok"
+                ? `${status.heartbeat_age_seconds} 秒前已收到`
+                : (heartbeatLabels[status.heartbeat_state] || "—");
+            byId("device-alert").textContent = deviceAlertLabels[status.device_alert_state] || "—";
+            const minutes = Math.floor(status.uptime_seconds / 60);
+            byId("uptime").textContent = `${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分钟`;
+        } catch {
+            byId("connection").dataset.state = "disconnected";
+            byId("state").textContent = "暂时连不上路由器";
+            byId("detail").textContent = "检查手机是否仍连着开发板的热点。";
+            for (const id of ["ip", "signal", "clients", "nat", "heartbeat", "device-alert", "uptime"]) {
+                byId(id).textContent = "—";
+            }
+        } finally {
+            setTimeout(refresh, 5000);
+        }
+    }
+
+    refresh();
+</script>
+</body>
+</html>

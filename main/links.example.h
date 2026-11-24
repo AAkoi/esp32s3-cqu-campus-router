@@ -1,0 +1,4 @@
+#pragma once
+
+#define ROUTER_HEALTHCHECK_PING_URL ""
+#define DEVICE_HEALTHCHECK_PING_URL ""

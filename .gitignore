@@ -1,0 +1,9 @@
+build/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+managed_components/
+main/links.local.h
+.mcp.json
+.clangd
+.vscode/
